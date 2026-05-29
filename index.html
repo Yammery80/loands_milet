@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>MiPréstamo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0b0b0d;
+  --s1:       #141416;
+  --s2:       #1c1c1f;
+  --s3:       #252528;
+  --s4:       #2e2e32;
+  --border:   rgba(255,255,255,0.07);
+  --border2:  rgba(255,255,255,0.13);
+  --text:     #edeae4;
+  --text2:    #8a8680;
+  --text3:    #4a4845;
+  --gold:     #c9a84c;
+  --gold2:    #a8882f;
+  --gold-hi:  #e8c46a;
+  --green:    #3aab72;
+  --red:      #d95858;
+  --blue:     #5b91e8;
+  --r:        14px;
+  --r-sm:     10px;
+  --sans:     'Instrument Sans', sans-serif;
+  --display:  'Syne', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;overflow-x:hidden;position:relative}
+
+/* ── SETUP SCREEN ── */
+#setup-screen{
+  position:fixed;inset:0;background:var(--bg);z-index:999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:28px;text-align:center;
+}
+.setup-logo{font-family:var(--display);font-size:32px;color:var(--gold);margin-bottom:6px}
+.setup-logo span{color:var(--text)}
+.setup-sub{font-size:13px;color:var(--text3);margin-bottom:32px}
+.setup-step{width:100%;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:14px;text-align:left}
+.setup-step-num{font-size:11px;font-weight:600;color:var(--gold);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.setup-step-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
+.setup-step-desc{font-size:13px;color:var(--text2);line-height:1.5}
+.setup-step-desc a{color:var(--gold);text-decoration:none}
+.setup-fields{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+.setup-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+.setup-input{width:100%;background:var(--s3);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none}
+.setup-input:focus{border-color:var(--gold)}
+.setup-input::placeholder{color:var(--text3)}
+
+/* ── LOGIN ── */
+#login-screen{
+  position:fixed;inset:0;background:var(--bg);z-index:998;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px;text-align:center;
+}
+.login-logo{font-family:var(--display);font-size:42px;color:var(--gold);line-height:1}
+.login-logo span{color:var(--text)}
+.login-sub{font-size:14px;color:var(--text3);margin:10px 0 40px}
+.login-btn-google{
+  display:flex;align-items:center;gap:12px;justify-content:center;
+  background:var(--s2);border:1px solid var(--border2);border-radius:12px;
+  padding:16px 24px;font-family:var(--sans);font-size:15px;font-weight:500;
+  color:var(--text);cursor:pointer;width:100%;transition:background 0.2s;
+}
+.login-btn-google:active{background:var(--s3)}
+.login-error{font-size:13px;color:var(--red);margin-top:16px;min-height:20px}
+
+/* ── HEADER ── */
+.app-header{
+  position:sticky;top:0;z-index:80;background:rgba(11,11,13,0.92);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--border);
+  padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between;
+}
+.app-logo{font-family:var(--display);font-size:20px;color:var(--gold);letter-spacing:-0.3px}
+.app-logo span{color:var(--text)}
+.header-right{display:flex;align-items:center;gap:10px}
+.user-dot{width:30px;height:30px;border-radius:50%;background:var(--s3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--gold);cursor:pointer;overflow:hidden}
+.user-dot img{width:100%;height:100%;object-fit:cover}
+#sync-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:none}
+#sync-dot.syncing{background:var(--gold);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* ── NAV ── */
+.bottom-nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;background:var(--s1);
+  border-top:1px solid var(--border);display:flex;z-index:80;
+  padding-bottom:env(safe-area-inset-bottom,10px);
+}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px 11px;background:none;border:none;color:var(--text3);font-family:var(--sans);font-size:10px;font-weight:500;cursor:pointer;transition:color 0.2s;position:relative}
+.nav-btn svg{width:21px;height:21px}
+.nav-btn.active{color:var(--gold)}
+.nav-badge{position:absolute;top:6px;right:calc(50% - 18px);background:var(--red);color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 5px;display:none}
+.nav-badge.show{display:block}
+
+/* ── PAGES ── */
+.page{display:none;padding:18px 18px 90px;animation:fadeIn 0.2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ── SECTION TITLE ── */
+.st{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px;margin-top:4px}
+
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:16px;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:currentColor;opacity:0.25}
+.stat-card.c-gold{color:var(--gold)}
+.stat-card.c-green{color:var(--green)}
+.stat-card.c-blue{color:var(--blue)}
+.stat-card.c-red{color:var(--red)}
+.stat-label{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px}
+.stat-val{font-family:var(--display);font-size:22px;font-weight:600;line-height:1;color:inherit}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:5px}
+
+/* ── CHART ── */
+.chart-wrap{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:18px}
+.chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.chart-title{font-family:var(--display);font-size:15px;font-weight:600}
+.chart-legend{font-size:11px;color:var(--text3)}
+.bars-row{display:flex;align-items:flex-end;gap:6px;height:90px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%}
+.bar-outer{flex:1;width:100%;display:flex;align-items:flex-end}
+.bar-inner{width:100%;background:var(--gold);border-radius:4px 4px 0 0;min-height:2px;opacity:0.75;transition:height 0.4s ease}
+.bar-inner.zero{opacity:0.2}
+.bar-lbl{font-size:10px;color:var(--text3);text-align:center}
+.bar-amt{font-size:9px;color:var(--text2);text-align:center;white-space:nowrap}
+
+/* ── CARDS ── */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:12px}
+.card-sm{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:13px;margin-bottom:8px}
+
+/* ── LOAN ITEM ── */
+.loan-item{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px;cursor:pointer;transition:border-color 0.15s}
+.loan-item:active{border-color:var(--border2)}
+.loan-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.loan-name{font-size:15px;font-weight:600;color:var(--text)}
+.loan-date{font-size:11px;color:var(--text3);margin-top:2px}
+.loan-amount{font-family:var(--display);font-size:20px;color:var(--gold);text-align:right}
+.loan-period{font-size:11px;color:var(--text3);text-align:right;margin-top:2px}
+.progress-bar{height:3px;background:var(--s4);border-radius:2px;overflow:hidden;margin:0 0 10px}
+.progress-fill{height:100%;background:var(--green);border-radius:2px}
+.progress-fill.late{background:var(--red)}
+.loan-meta{display:flex;justify-content:space-between;align-items:center}
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;letter-spacing:0.3px}
+.badge-active{background:rgba(58,171,114,0.14);color:var(--green)}
+.badge-late{background:rgba(217,88,88,0.14);color:var(--red)}
+.badge-done{background:rgba(255,255,255,0.05);color:var(--text3)}
+
+/* ── PEOPLE ── */
+.person-item{display:flex;align-items:center;gap:12px;padding:14px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:8px;cursor:pointer;transition:border-color 0.15s}
+.person-item:active{border-color:var(--border2)}
+.avatar{width:42px;height:42px;border-radius:50%;background:var(--s3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:15px;font-weight:700;color:var(--gold);flex-shrink:0}
+.person-info{flex:1;min-width:0}
+.person-name{font-size:15px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person-sub{font-size:12px;color:var(--text3);margin-top:2px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 20px;border-radius:var(--r-sm);font-family:var(--sans);font-size:14px;font-weight:500;cursor:pointer;border:none;width:100%;transition:all 0.14s;text-decoration:none}
+.btn-gold{background:var(--gold);color:#120e00}
+.btn-gold:active{background:var(--gold2)}
+.btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+.btn-outline:active{background:var(--s2)}
+.btn-danger{background:rgba(217,88,88,0.1);color:var(--red);border:1px solid rgba(217,88,88,0.2)}
+.btn-green{background:rgba(58,171,114,0.1);color:var(--green);border:1px solid rgba(58,171,114,0.2)}
+.btn-sm{padding:7px 13px;font-size:12px;width:auto;border-radius:8px}
+
+/* ── FORMS ── */
+.form-group{margin-bottom:13px}
+.form-label{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:5px;display:block}
+.form-input{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;color:var(--text);font-family:var(--sans);font-size:15px;outline:none;transition:border-color 0.2s;appearance:none}
+.form-input:focus{border-color:var(--gold)}
+.form-input::placeholder{color:var(--text3)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:200;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--s1);border-radius:22px 22px 0 0;padding:22px 20px 44px;width:100%;max-width:430px;max-height:92vh;overflow-y:auto;border-top:1px solid var(--border2)}
+.modal-handle{width:36px;height:3px;background:var(--s4);border-radius:2px;margin:0 auto 18px}
+.modal-title{font-family:var(--display);font-size:21px;font-weight:700;color:var(--text);margin-bottom:18px}
+
+/* ── PAYMENTS TABLE ── */
+.pay-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}
+.pay-row:last-child{border:none}
+.pay-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.pay-paid{background:rgba(58,171,114,0.15);color:var(--green)}
+.pay-late{background:rgba(217,88,88,0.15);color:var(--red)}
+.pay-pending{background:var(--s3);color:var(--text3)}
+.pay-info{flex:1;min-width:0}
+.pay-date{font-size:13px;color:var(--text)}
+.pay-note{font-size:11px;margin-top:1px}
+.pay-amount{font-size:14px;font-weight:600}
+
+/* ── CALC PREVIEW ── */
+.calc-box{background:var(--s3);border-radius:var(--r-sm);padding:14px;margin-top:10px}
+.calc-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:3px 0}
+.calc-total{font-size:15px;font-weight:600;color:var(--gold);border-top:1px solid var(--border);margin-top:8px;padding-top:10px}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;background:var(--s2);padding:4px;border-radius:10px;margin-bottom:16px}
+.tab{flex:1;padding:8px 4px;text-align:center;font-size:13px;font-weight:500;color:var(--text3);border-radius:7px;cursor:pointer;border:none;background:none;font-family:var(--sans);transition:all 0.15s}
+.tab.active{background:var(--s1);color:var(--text);border:1px solid var(--border)}
+
+/* ── SEARCH ── */
+.search-bar{display:flex;align-items:center;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:0 14px;margin-bottom:14px;gap:10px}
+.search-bar svg{color:var(--text3);flex-shrink:0;width:17px;height:17px}
+.search-bar input{flex:1;background:none;border:none;outline:none;padding:12px 0;color:var(--text);font-family:var(--sans);font-size:14px}
+
+/* ── FAB ── */
+.fab{position:fixed;bottom:76px;right:18px;width:50px;height:50px;border-radius:50%;background:var(--gold);color:#120e00;font-size:24px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:60;box-shadow:0 4px 22px rgba(201,168,76,0.4);transition:transform 0.15s}
+.fab:active{transform:scale(0.92)}
+
+/* ── SETTINGS ── */
+.cfg-row{display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:1px solid var(--border)}
+.cfg-row:last-child{border:none}
+.cfg-label{font-size:14px;color:var(--text)}
+.cfg-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.switch{position:relative;display:inline-block;width:44px;height:25px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:var(--s4);border-radius:25px;transition:.3s}
+.slider:before{position:absolute;content:"";height:19px;width:19px;left:3px;bottom:3px;background:var(--text3);border-radius:50%;transition:.3s}
+input:checked+.slider{background:var(--gold)}
+input:checked+.slider:before{transform:translateX(19px);background:#120e00}
+
+/* ── FILE UPLOAD ── */
+.file-zone{border:1.5px dashed var(--border2);border-radius:var(--r-sm);padding:16px;text-align:center;cursor:pointer;background:var(--s2)}
+.file-zone input{display:none}
+.file-zone-label{font-size:13px;color:var(--text3)}
+.file-ok{font-size:12px;color:var(--green);margin-top:5px}
+
+/* ── RATE DISPLAY ── */
+.rate-hero{font-family:var(--display);font-size:56px;font-weight:700;color:var(--gold);text-align:center;line-height:1;padding:8px 0 4px}
+.rate-hero-sub{text-align:center;font-size:12px;color:var(--text3);margin-bottom:6px}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:50px 20px}
+.empty-icon{font-size:36px;opacity:0.3;margin-bottom:12px}
+.empty p{font-size:14px;color:var(--text3);line-height:1.6}
+
+/* ── LOADING ── */
+#app-loading{position:fixed;inset:0;background:var(--bg);z-index:997;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.spinner{width:36px;height:36px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- ── SETUP SCREEN ── -->
+<div id="setup-screen">
+  <div class="setup-logo">Mi<span>Préstamo</span></div>
+  <div class="setup-sub">Configura Firebase una sola vez</div>
+
+  <div class="setup-step">
+    <div class="setup-step-num">Paso 1</div>
+    <div class="setup-step-title">Crea tu proyecto Firebase</div>
+    <div class="setup-step-desc">
+      Ve a <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → "Agregar proyecto" → ponle un nombre → desactiva Analytics → Crear.<br><br>
+      Luego: <strong>Authentication → Comenzar → Google → Habilitar → Guardar</strong><br><br>
+      Luego: <strong>Firestore → Crear base de datos → Modo producción → Región: nam5 → Listo</strong><br><br>
+      Luego ve a <strong>Reglas de Firestore</strong> y pega esto:
+      <pre style="background:var(--s3);padding:10px;border-radius:8px;font-size:11px;margin-top:8px;white-space:pre-wrap;color:var(--text2)">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}</pre>
+    </div>
+  </div>
+
+  <div class="setup-step">
+    <div class="setup-step-num">Paso 2</div>
+    <div class="setup-step-title">Copia tu configuración</div>
+    <div class="setup-step-desc">
+      En Firebase: <strong>Configuración del proyecto ⚙️ → Tus apps → &lt;/&gt; Web → Registrar app</strong> → copia los datos que aparecen.
+    </div>
+    <div class="setup-fields">
+      <div>
+        <div class="setup-label">API Key</div>
+        <input class="setup-input" id="cfg-apiKey" placeholder="AIzaSy...">
+      </div>
+      <div>
+        <div class="setup-label">Auth Domain</div>
+        <input class="setup-input" id="cfg-authDomain" placeholder="mi-proyecto.firebaseapp.com">
+      </div>
+      <div>
+        <div class="setup-label">Project ID</div>
+        <input class="setup-input" id="cfg-projectId" placeholder="mi-proyecto">
+      </div>
+      <div>
+        <div class="setup-label">App ID</div>
+        <input class="setup-input" id="cfg-appId" placeholder="1:123456:web:abc123">
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-gold" onclick="saveConfig()" style="margin-top:6px">Guardar y continuar →</button>
+  <div id="setup-error" style="color:var(--red);font-size:13px;margin-top:12px;text-align:center"></div>
+</div>
+
+<!-- ── LOADING ── -->
+<div id="app-loading" style="display:none">
+  <div class="spinner"></div>
+  <div style="font-size:13px;color:var(--text3)">Conectando…</div>
+</div>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-logo">Mi<span>Préstamo</span></div>
+  <div class="login-sub">Tu sistema de préstamos personal</div>
+  <button class="login-btn-google" onclick="loginGoogle()">
+    <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.7 33 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9L37.5 9.4C34.1 6.4 29.3 4.5 24 4.5 12.7 4.5 3.5 13.7 3.5 25S12.7 45.5 24 45.5c11 0 20.5-8 20.5-20.5 0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.6 15.1 18.9 12 24 12c3 0 5.8 1.1 7.9 2.9L37.5 9.4C34.1 6.4 29.3 4.5 24 4.5c-7.7 0-14.4 4.4-17.7 10.2z"/><path fill="#4CAF50" d="M24 45.5c5.2 0 9.9-1.8 13.5-4.7l-6.3-5.1C29.3 37.3 26.8 38 24 38c-5.3 0-9.7-3-11.3-7.3l-6.6 5.1C9.5 41.1 16.2 45.5 24 45.5z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.9 2.5-2.6 4.5-4.8 5.9l6.3 5.1C40.6 35.2 44 30.5 44 25c0-1.3-.1-2.7-.4-4z"/></svg>
+    Entrar con Google
+  </button>
+  <div class="login-error" id="login-error"></div>
+</div>
+
+<!-- ── HEADER ── -->
+<div class="app-header" id="main-header" style="display:none">
+  <div class="app-logo">Mi<span>Préstamo</span></div>
+  <div class="header-right">
+    <div id="sync-dot"></div>
+    <div class="user-dot" id="user-avatar" onclick="confirmLogout()">?</div>
+  </div>
+</div>
+
+<!-- ── PAGES ── -->
+<div class="page active" id="page-dashboard"></div>
+<div class="page" id="page-loans"></div>
+<div class="page" id="page-people"></div>
+<div class="page" id="page-settings"></div>
+
+<!-- ── NAV ── -->
+<nav class="bottom-nav" id="main-nav" style="display:none">
+  <button class="nav-btn active" onclick="showPage('dashboard',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+    Dashboard
+  </button>
+  <button class="nav-btn" onclick="showPage('loans',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    Préstamos
+    <span class="nav-badge" id="badge-late"></span>
+  </button>
+  <button class="nav-btn" onclick="showPage('people',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Clientes
+  </button>
+  <button class="nav-btn" onclick="showPage('settings',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Config
+  </button>
+</nav>
+
+<button class="fab" id="fab" style="display:none" onclick="openNewLoan()">+</button>
+
+<!-- ── MODALS ── -->
+<div class="modal-overlay" id="modal-loan"><div class="modal" id="modal-loan-body"></div></div>
+<div class="modal-overlay" id="modal-person"><div class="modal" id="modal-person-body"></div></div>
+<div class="modal-overlay" id="modal-new-loan"><div class="modal" id="modal-new-loan-body"></div></div>
+<div class="modal-overlay" id="modal-new-person"><div class="modal" id="modal-new-person-body"></div></div>
+
+<!-- ── FIREBASE SDK ── -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot, serverTimestamp }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// ── CONFIG ──
+const CFG_KEY = 'miprestamo_fb_cfg';
+let fbApp, auth, db, uid;
+let people = [], loans = [];
+let loanFilter = 'all';
+let loanFileData = null, personFileData = null;
+let settings = { rate:10, period:'weekly', autoLate:true };
+
+// ── UTILS ──
+const $ = id => document.getElementById(id);
+const fmt = n => '$' + Number(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+const today = () => new Date().toISOString().split('T')[0];
+const fmtDate = d => { if(!d)return'—'; const [y,m,dd]=d.split('-'); return `${dd}/${m}/${y}`; };
+const periodDays = p => p==='weekly'?7:p==='biweekly'?14:30;
+const periodLabel = p => p==='weekly'?'Semanal':p==='biweekly'?'Quincenal':'Mensual';
+const initials = name => name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+function addDays(dateStr, days) {
+  const d = new Date(dateStr); d.setDate(d.getDate()+days); return d.toISOString().split('T')[0];
+}
+function setSyncing(v) { $('sync-dot').style.display='block'; $('sync-dot').className = v?'syncing':''; }
+
+// ── SETUP ──
+window.saveConfig = function() {
+  const cfg = {
+    apiKey: $('cfg-apiKey').value.trim(),
+    authDomain: $('cfg-authDomain').value.trim(),
+    projectId: $('cfg-projectId').value.trim(),
+    appId: $('cfg-appId').value.trim(),
+  };
+  if (!cfg.apiKey || !cfg.projectId) { $('setup-error').textContent='Completa API Key y Project ID'; return; }
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+  initFirebase(cfg);
+};
+
+function initFirebase(cfg) {
+  $('setup-screen').style.display = 'none';
+  $('app-loading').style.display = 'flex';
+  try {
+    fbApp = initializeApp(cfg);
+    auth = getAuth(fbApp);
+    db = getFirestore(fbApp);
+    onAuthStateChanged(auth, user => {
+      $('app-loading').style.display = 'none';
+      if (user) { uid = user.uid; startApp(user); }
+      else { $('login-screen').style.display = 'flex'; }
+    });
+  } catch(e) {
+    $('app-loading').style.display = 'none';
+    $('setup-screen').style.display = 'flex';
+    $('setup-error').textContent = 'Error de configuración: ' + e.message;
+    localStorage.removeItem(CFG_KEY);
+  }
+}
+
+// ── AUTH ──
+window.loginGoogle = async function() {
+  try {
+    $('login-error').textContent = '';
+    await signInWithPopup(auth, new GoogleAuthProvider());
+  } catch(e) { $('login-error').textContent = 'Error al entrar: ' + e.message; }
+};
+
+window.confirmLogout = function() {
+  if (confirm('¿Cerrar sesión?')) signOut(auth).then(()=>{ location.reload(); });
+};
+
+// ── APP START ──
+async function startApp(user) {
+  $('login-screen').style.display = 'none';
+  $('main-header').style.display = 'flex';
+  $('main-nav').style.display = 'flex';
+  $('fab').style.display = 'flex';
+  // Avatar
+  const av = $('user-avatar');
+  if (user.photoURL) { av.innerHTML=`<img src="${user.photoURL}">`; }
+  else { av.textContent = (user.displayName||user.email||'?')[0].toUpperCase(); }
+  // Load settings
+  await loadSettings();
+  // Subscribe realtime
+  listenLoans();
+  listenPeople();
+  renderDashboard();
+}
+
+// ── FIRESTORE HELPERS ──
+const colRef = name => collection(db, 'users', uid, name);
+const docRef = (col,id) => doc(db, 'users', uid, col, id);
+
+async function loadSettings() {
+  try {
+    const snap = await getDoc(docRef('meta','settings'));
+    if (snap.exists()) settings = { ...settings, ...snap.data() };
+  } catch(e) {}
+}
+async function saveSettings() {
+  setSyncing(true);
+  await setDoc(docRef('meta','settings'), settings);
+  setSyncing(false);
+}
+async function saveItem(col, item) {
+  setSyncing(true);
+  await setDoc(docRef(col, item.id), { ...item, updatedAt: serverTimestamp() });
+  setSyncing(false);
+}
+async function deleteItem(col, id) {
+  setSyncing(true);
+  await deleteDoc(docRef(col, id));
+  setSyncing(false);
+}
+
+function listenLoans() {
+  onSnapshot(colRef('loans'), snap => {
+    loans = snap.docs.map(d => d.data());
+    checkLateStatus();
+    const lateCount = loans.filter(l=>l.status==='late').length;
+    const badge = $('badge-late');
+    if (lateCount > 0) { badge.textContent=lateCount; badge.classList.add('show'); }
+    else { badge.classList.remove('show'); }
+    if ($('page-loans').classList.contains('active')) renderLoansPage();
+    if ($('page-dashboard').classList.contains('active')) renderDashboard();
+  });
+}
+function listenPeople() {
+  onSnapshot(colRef('people'), snap => {
+    people = snap.docs.map(d => d.data());
+    if ($('page-people').classList.contains('active')) renderPeoplePage();
+  });
+}
+
+// ── LATE CHECK ──
+function checkLateStatus() {
+  const now = today();
+  loans.forEach(l => {
+    if (l.status==='done') return;
+    const allPaid = l.payments.every(p=>p.paid);
+    const hasLate = l.payments.some(p=>!p.paid && p.dueDate < now);
+    l.status = allPaid ? 'done' : (hasLate && settings.autoLate) ? 'late' : 'active';
+  });
+}
+
+// ── NAVIGATION ──
+window.showPage = function(name, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  $('page-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+  $('fab').style.display = (name==='loans'||name==='dashboard') ? 'flex' : 'none';
+  if (name==='dashboard') renderDashboard();
+  if (name==='loans') renderLoansPage();
+  if (name==='people') renderPeoplePage();
+  if (name==='settings') renderSettingsPage();
+};
+
+function openModal(id) { $(id).classList.add('open'); }
+window.closeModal = function(id) { $(id).classList.remove('open'); };
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); });
+});
+
+// ── DASHBOARD ──
+function renderDashboard() {
+  let capital=0, interestCobrado=0, porCobrar=0, lateCount=0;
+  const now = today();
+  loans.forEach(l => {
+    capital += Number(l.amount);
+    const perPay = l.totalAmount / l.payments.length;
+    const capitalPorPago = l.amount / l.payments.length;
+    l.payments.forEach(p => {
+      if (p.paid) interestCobrado += p.amount - capitalPorPago;
+      else porCobrar += p.amount;
+    });
+    if (l.status==='late') lateCount++;
+  });
+  // Monthly chart data
+  const months = [];
+  for(let i=5;i>=0;i--) {
+    const d=new Date(); d.setMonth(d.getMonth()-i);
+    months.push({m:d.getMonth(),y:d.getFullYear(),label:d.toLocaleString('es',{month:'short'})});
+  }
+  const totals = months.map(({m,y}) => {
+    let t=0;
+    loans.forEach(l=>l.payments.forEach(p=>{
+      if(p.paid&&p.paidDate){const pd=new Date(p.paidDate);if(pd.getMonth()===m&&pd.getFullYear()===y)t+=p.amount;}
+    }));
+    return t;
+  });
+  const maxT = Math.max(...totals, 1);
+
+  const recentActive = loans.filter(l=>l.status!=='done').slice(-3).reverse();
+  const recentHtml = recentActive.length
+    ? recentActive.map(l=>loanCardHtml(l)).join('')
+    : '<div class="empty"><div class="empty-icon">💸</div><p>Sin préstamos activos</p></div>';
+
+  $('page-dashboard').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card c-gold">
+        <div class="stat-label">Capital prestado</div>
+        <div class="stat-val">${fmt(capital)}</div>
+      </div>
+      <div class="stat-card c-green">
+        <div class="stat-label">Intereses cobrados</div>
+        <div class="stat-val">${fmt(interestCobrado)}</div>
+      </div>
+      <div class="stat-card c-blue">
+        <div class="stat-label">Por cobrar</div>
+        <div class="stat-val">${fmt(porCobrar)}</div>
+      </div>
+      <div class="stat-card c-red">
+        <div class="stat-label">Vencidos</div>
+        <div class="stat-val">${lateCount}</div>
+        <div class="stat-sub">${lateCount===0?'Todo al día':'préstamo'+(lateCount>1?'s':'')}</div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-head">
+        <div class="chart-title">Cobros por mes</div>
+        <div class="chart-legend">últimos 6 meses</div>
+      </div>
+      <div class="bars-row">
+        ${totals.map((t,i)=>`
+          <div class="bar-col">
+            <div class="bar-outer"><div class="bar-inner ${t===0?'zero':''}" style="height:${Math.max((t/maxT)*90,2)}px"></div></div>
+            <div class="bar-amt">${t>0?'$'+(t/1000).toFixed(1)+'k':''}</div>
+            <div class="bar-lbl">${months[i].label}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="st">Activos recientes</div>
+    ${recentHtml}
+  `;
+  // attach events
+  $('page-dashboard').querySelectorAll('.loan-item').forEach(el=>{
+    el.onclick=()=>showLoanDetail(el.dataset.id);
+  });
+}
+
+// ── LOANS PAGE ──
+function renderLoansPage() {
+  const q = ($('loan-search-input')||{value:''}).value.toLowerCase();
+  let list = loans.filter(l=>{
+    const p = people.find(x=>x.id===l.personId);
+    return (p?p.name:'').toLowerCase().includes(q);
+  });
+  if (loanFilter!=='all') list=list.filter(l=>
+    loanFilter==='active'?l.status==='active':
+    loanFilter==='late'?l.status==='late':
+    l.status==='done'
+  );
+  list = [...list].reverse();
+
+  $('page-loans').innerHTML = `
+    <div class="search-bar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Buscar cliente…" id="loan-search-input" oninput="renderLoansPage()" value="${q}">
+    </div>
+    <div class="tabs">
+      <button class="tab ${loanFilter==='all'?'active':''}" onclick="setLoanFilter('all',this)">Todos</button>
+      <button class="tab ${loanFilter==='active'?'active':''}" onclick="setLoanFilter('active',this)">Activos</button>
+      <button class="tab ${loanFilter==='late'?'active':''}" onclick="setLoanFilter('late',this)">Vencidos</button>
+      <button class="tab ${loanFilter==='done'?'active':''}" onclick="setLoanFilter('done',this)">Liquidados</button>
+    </div>
+    ${list.length ? list.map(l=>loanCardHtml(l)).join('') : '<div class="empty"><div class="empty-icon">📋</div><p>Sin resultados</p></div>'}
+  `;
+  $('page-loans').querySelectorAll('.loan-item').forEach(el=>{
+    el.onclick=()=>showLoanDetail(el.dataset.id);
+  });
+}
+window.renderLoansPage = renderLoansPage;
+
+window.setLoanFilter = function(f,btn) {
+  loanFilter=f;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  renderLoansPage();
+};
+
+function loanCardHtml(l) {
+  const p = people.find(x=>x.id===l.personId);
+  const name = p?p.name:'—';
+  const paid = l.payments.filter(x=>x.paid).length;
+  const pct = Math.round((paid/l.payments.length)*100);
+  const badge = l.status==='active'?'<span class="badge badge-active">Activo</span>':
+    l.status==='late'?'<span class="badge badge-late">Vencido</span>':
+    '<span class="badge badge-done">Liquidado</span>';
+  return `<div class="loan-item" data-id="${l.id}">
+    <div class="loan-top">
+      <div><div class="loan-name">${name}</div><div class="loan-date">${fmtDate(l.date)} · ${periodLabel(l.period)}</div></div>
+      <div><div class="loan-amount">${fmt(l.amount)}</div><div class="loan-period">${l.rate}% interés</div></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill ${l.status==='late'?'late':''}" style="width:${pct}%"></div></div>
+    <div class="loan-meta"><span style="font-size:12px;color:var(--text3)">${paid}/${l.payments.length} pagos · ${fmt(l.totalAmount)} total</span>${badge}</div>
+  </div>`;
+}
+
+// ── LOAN DETAIL ──
+function showLoanDetail(id) {
+  const l = loans.find(x=>x.id===id);
+  if (!l) return;
+  const p = people.find(x=>x.id===l.personId);
+  const name = p?p.name:'—';
+  const now = today();
+  const paidAmt = l.payments.filter(x=>x.paid).reduce((a,x)=>a+x.amount,0);
+  const remaining = l.totalAmount - paidAmt;
+
+  const rows = l.payments.map((pay,i) => {
+    const isLate = !pay.paid && pay.dueDate < now;
+    const cls = pay.paid?'pay-paid':isLate?'pay-late':'pay-pending';
+    return `<div class="pay-row">
+      <div class="pay-num ${cls}">${pay.num}</div>
+      <div class="pay-info">
+        <div class="pay-date">${fmtDate(pay.dueDate)}</div>
+        <div class="pay-note" style="color:${pay.paid?'var(--green)':isLate?'var(--red)':'var(--text3)'}">${pay.paid?'Pagado '+fmtDate(pay.paidDate):isLate?'Vencido':'Pendiente'}</div>
+      </div>
+      <div class="pay-amount" style="color:${pay.paid?'var(--green)':'var(--text)'}">${fmt(pay.amount)}</div>
+      ${!pay.paid?`<button class="btn btn-green btn-sm" style="margin-left:6px" onclick="markPaid('${id}',${i})">✓</button>`:''}
+    </div>`;
+  }).join('');
+
+  const contractBtn = l.contractFile
+    ? `<button class="btn btn-outline btn-sm" style="width:auto" onclick="viewFileData('loan','${id}')">📄 Ver contrato</button>` : '';
+
+  $('modal-loan-body').innerHTML = `
+    <div class="modal-handle" onclick="closeModal('modal-loan')"></div>
+    <div class="modal-title">${name}</div>
+    <div class="stats-grid" style="gap:8px;margin-bottom:14px">
+      <div class="stat-card c-gold" style="padding:13px"><div class="stat-label">Prestado</div><div class="stat-val" style="font-size:18px">${fmt(l.amount)}</div></div>
+      <div class="stat-card c-green" style="padding:13px"><div class="stat-label">Cobrado</div><div class="stat-val" style="font-size:18px">${fmt(paidAmt)}</div></div>
+      <div class="stat-card" style="padding:13px"><div class="stat-label">Por cobrar</div><div class="stat-val" style="font-size:18px">${fmt(remaining)}</div></div>
+      <div class="stat-card" style="padding:13px"><div class="stat-label">Tasa</div><div class="stat-val" style="font-size:18px">${l.rate}%</div></div>
+    </div>
+    ${contractBtn}
+    <div class="st" style="margin-top:14px">Plan de pagos</div>
+    <div style="background:var(--s2);border-radius:var(--r-sm);padding:4px 14px 0;border:1px solid var(--border)">${rows}</div>
+    ${l.status!=='done'?`<button class="btn btn-danger" style="margin-top:16px" onclick="deleteLoanConfirm('${id}')">Eliminar préstamo</button>`:''}
+    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-loan')">Cerrar</button>
+  `;
+  openModal('modal-loan');
+}
+window.showLoanDetail = showLoanDetail;
+
+window.markPaid = async function(loanId, idx) {
+  const l = loans.find(x=>x.id===loanId);
+  if (!l) return;
+  l.payments[idx].paid = true;
+  l.payments[idx].paidDate = today();
+  checkLateStatus();
+  await saveItem('loans', l);
+  showLoanDetail(loanId);
+};
+
+window.deleteLoanConfirm = async function(id) {
+  if (!confirm('¿Eliminar este préstamo?')) return;
+  await deleteItem('loans', id);
+  closeModal('modal-loan');
+};
+
+// ── NEW LOAN ──
+window.openNewLoan = function() {
+  loanFileData = null;
+  $('modal-new-loan-body').innerHTML = `
+    <div class="modal-handle" onclick="closeModal('modal-new-loan')"></div>
+    <div class="modal-title">Nuevo préstamo</div>
+    <div class="form-group">
+      <label class="form-label">Cliente *</label>
+      <select class="form-input" id="nl-person">
+        <option value="">Selecciona cliente…</option>
+        ${people.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Monto *</label>
+        <input class="form-input" id="nl-amount" type="number" placeholder="0" oninput="calcPreview()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Interés %</label>
+        <input class="form-input" id="nl-rate" type="number" placeholder="${settings.rate}" value="${settings.rate}" oninput="calcPreview()">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">No. pagos</label>
+        <input class="form-input" id="nl-payments" type="number" value="4" min="1" oninput="calcPreview()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Período</label>
+        <select class="form-input" id="nl-period">
+          <option value="weekly" ${settings.period==='weekly'?'selected':''}>Semanal</option>
+          <option value="biweekly" ${settings.period==='biweekly'?'selected':''}>Quincenal</option>
+          <option value="monthly" ${settings.period==='monthly'?'selected':''}>Mensual</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fecha inicio</label>
+      <input class="form-input" id="nl-date" type="date" value="${today()}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contrato (opcional)</label>
+      <div class="file-zone" onclick="document.getElementById('nl-file').click()">
+        <input type="file" id="nl-file" accept="image/*,.pdf" onchange="handleLoanFile(this)">
+        <div class="file-zone-label">📎 Adjuntar foto o PDF</div>
+        <div class="file-ok" id="nl-file-ok"></div>
+      </div>
+    </div>
+    <div id="nl-preview"></div>
+    <button class="btn btn-gold" style="margin-top:14px" onclick="saveLoan()">Crear préstamo →</button>
+    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-new-loan')">Cancelar</button>
+  `;
+  openModal('modal-new-loan');
+};
+
+window.calcPreview = function() {
+  const amount = parseFloat(document.getElementById('nl-amount')?.value)||0;
+  const rate = parseFloat(document.getElementById('nl-rate')?.value)||0;
+  const n = parseInt(document.getElementById('nl-payments')?.value)||1;
+  const prev = document.getElementById('nl-preview');
+  if (!prev) return;
+  if (!amount) { prev.innerHTML=''; return; }
+  const interest = amount*(rate/100);
+  const total = amount+interest;
+  const per = total/n;
+  prev.innerHTML = `<div class="calc-box">
+    <div class="calc-row"><span style="color:var(--text3)">Capital</span><span>${fmt(amount)}</span></div>
+    <div class="calc-row"><span style="color:var(--text3)">Interés total (${rate}%)</span><span style="color:var(--green)">${fmt(interest)}</span></div>
+    <div class="calc-row calc-total"><span>Total a cobrar</span><span>${fmt(total)}</span></div>
+    <div class="calc-row"><span style="color:var(--text3)">Pago por período</span><span style="color:var(--gold)">${fmt(per)}</span></div>
+  </div>`;
+};
+
+window.handleLoanFile = function(input) {
+  const file = input.files[0]; if(!file) return;
+  if (file.size > 900000) { alert('Archivo muy grande. Máx ~900KB'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    loanFileData = { name:file.name, type:file.type, data:e.target.result };
+    document.getElementById('nl-file-ok').textContent = '✓ ' + file.name;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.saveLoan = async function() {
+  const personId = document.getElementById('nl-person').value;
+  const amount = parseFloat(document.getElementById('nl-amount').value);
+  const rate = parseFloat(document.getElementById('nl-rate').value)||settings.rate;
+  const n = parseInt(document.getElementById('nl-payments').value)||4;
+  const period = document.getElementById('nl-period').value;
+  const date = document.getElementById('nl-date').value||today();
+  if (!personId||!amount) { alert('Completa cliente y monto'); return; }
+  const interest = amount*(rate/100);
+  const total = amount+interest;
+  const per = total/n;
+  const days = periodDays(period);
+  const payments = Array.from({length:n},(_,i)=>({
+    num:i+1, amount:per, dueDate:addDays(date,days*(i+1)), paid:false, paidDate:null
+  }));
+  const loan = {
+    id: 'l'+Date.now(), personId, amount, rate, period, date,
+    totalAmount:total, payments, status:'active',
+    contractFile: loanFileData||null
+  };
+  await saveItem('loans', loan);
+  loanFileData = null;
+  closeModal('modal-new-loan');
+};
+
+// ── PEOPLE PAGE ──
+function renderPeoplePage() {
+  const q = ($('people-search-input')||{value:''}).value.toLowerCase();
+  const list = people.filter(p=>p.name.toLowerCase().includes(q));
+  $('page-people').innerHTML = `
+    <div class="search-bar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Buscar cliente…" id="people-search-input" oninput="renderPeoplePage()" value="${q}">
+    </div>
+    <button class="btn btn-gold" style="margin-bottom:14px" onclick="openNewPerson()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      Nuevo cliente
+    </button>
+    ${list.length ? list.map(p=>{
+      const lns = loans.filter(l=>l.personId===p.id);
+      const active = lns.filter(l=>l.status!=='done').length;
+      const badge = active>0
+        ? `<span class="badge badge-active">${active} activo${active>1?'s':''}</span>`
+        : `<span class="badge badge-done">Sin deuda</span>`;
+      return `<div class="person-item" data-id="${p.id}">
+        <div class="avatar">${initials(p.name)}</div>
+        <div class="person-info">
+          <div class="person-name">${p.name}</div>
+          <div class="person-sub">${p.phone||'Sin teléfono'}</div>
+        </div>
+        ${badge}
+      </div>`;
+    }).join('') : '<div class="empty"><div class="empty-icon">👥</div><p>Sin clientes aún</p></div>'}
+  `;
+  $('page-people').querySelectorAll('.person-item').forEach(el=>{
+    el.onclick=()=>showPersonDetail(el.dataset.id);
+  });
+}
+window.renderPeoplePage = renderPeoplePage;
+
+// ── PERSON DETAIL ──
+function showPersonDetail(id) {
+  const p = people.find(x=>x.id===id);
+  if (!p) return;
+  const lns = loans.filter(l=>l.personId===id);
+  const total = lns.reduce((a,l)=>a+l.amount,0);
+  const loansHtml = lns.length
+    ? lns.map(l=>`<div class="card-sm" onclick="closeModal('modal-person');showLoanDetail('${l.id}')" style="cursor:pointer">
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-size:14px">${fmtDate(l.date)}</span>
+          <span style="font-size:14px;font-weight:600;color:var(--gold)">${fmt(l.amount)}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">${l.payments.filter(x=>x.paid).length}/${l.payments.length} pagos · ${periodLabel(l.period)} · ${l.status==='late'?'<span style="color:var(--red)">Vencido</span>':l.status==='done'?'<span style="color:var(--text3)">Liquidado</span>':'<span style="color:var(--green)">Activo</span>'}</div>
+      </div>`).join('')
+    : '<p style="font-size:13px;color:var(--text3);padding:10px 0">Sin préstamos</p>';
+
+  $('modal-person-body').innerHTML = `
+    <div class="modal-handle" onclick="closeModal('modal-person')"></div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div class="avatar" style="width:52px;height:52px;font-size:18px">${initials(p.name)}</div>
+      <div>
+        <div style="font-size:18px;font-weight:600">${p.name}</div>
+        <div style="font-size:13px;color:var(--text3)">${p.phone||'—'} ${p.idNum?'· ID: '+p.idNum:''}</div>
+      </div>
+    </div>
+    ${p.address?`<div class="card-sm" style="font-size:13px;color:var(--text2);margin-bottom:8px">📍 ${p.address}</div>`:''}
+    ${p.notes?`<div class="card-sm" style="font-size:13px;color:var(--text2);margin-bottom:8px">📝 ${p.notes}</div>`:''}
+    ${p.file?`<button class="btn btn-outline btn-sm" style="width:auto;margin-bottom:14px" onclick="viewFileData('person','${id}')">📄 Ver documento</button>`:''}
+    <div class="st">Historial · ${fmt(total)} total</div>
+    ${loansHtml}
+    <button class="btn btn-gold" style="margin-top:14px" onclick="closeModal('modal-person');openNewLoanForPerson('${id}')">+ Nuevo préstamo</button>
+    <button class="btn btn-danger" style="margin-top:8px" onclick="deletePersonConfirm('${id}')">Eliminar cliente</button>
+    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-person')">Cerrar</button>
+  `;
+  openModal('modal-person');
+}
+window.showPersonDetail = showPersonDetail;
+
+window.openNewLoanForPerson = function(personId) {
+  openNewLoan();
+  setTimeout(()=>{ const el=document.getElementById('nl-person'); if(el) el.value=personId; },100);
+};
+
+window.deletePersonConfirm = async function(id) {
+  const hasLoans = loans.some(l=>l.personId===id);
+  if (hasLoans && !confirm('Este cliente tiene préstamos. ¿Eliminar de todas formas?')) return;
+  const loanIds = loans.filter(l=>l.personId===id).map(l=>l.id);
+  for (const lid of loanIds) await deleteItem('loans', lid);
+  await deleteItem('people', id);
+  closeModal('modal-person');
+};
+
+// ── NEW PERSON ──
+window.openNewPerson = function() {
+  personFileData = null;
+  $('modal-new-person-body').innerHTML = `
+    <div class="modal-handle" onclick="closeModal('modal-new-person')"></div>
+    <div class="modal-title">Nuevo cliente</div>
+    <div class="form-group">
+      <label class="form-label">Nombre completo *</label>
+      <input class="form-input" id="np-name" placeholder="Ej. María García López">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Teléfono</label>
+        <input class="form-input" id="np-phone" type="tel" placeholder="555-000-0000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">INE / ID</label>
+        <input class="form-input" id="np-id" placeholder="Opcional">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Dirección</label>
+      <input class="form-input" id="np-address" placeholder="Calle, número, colonia">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notas / Referencia</label>
+      <textarea class="form-input" id="np-notes" rows="2" placeholder="Trabajo, aval, observaciones…"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Foto / Documento (opcional)</label>
+      <div class="file-zone" onclick="document.getElementById('np-file').click()">
+        <input type="file" id="np-file" accept="image/*,.pdf" onchange="handlePersonFile(this)">
+        <div class="file-zone-label">📎 Adjuntar foto o PDF</div>
+        <div class="file-ok" id="np-file-ok"></div>
+      </div>
+    </div>
+    <button class="btn btn-gold" onclick="savePerson()">Guardar cliente</button>
+    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-new-person')">Cancelar</button>
+  `;
+  openModal('modal-new-person');
+};
+
+window.handlePersonFile = function(input) {
+  const file = input.files[0]; if(!file) return;
+  if (file.size > 900000) { alert('Archivo muy grande. Máx ~900KB'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    personFileData = { name:file.name, type:file.type, data:e.target.result };
+    document.getElementById('np-file-ok').textContent = '✓ ' + file.name;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.savePerson = async function() {
+  const name = document.getElementById('np-name').value.trim();
+  if (!name) { alert('El nombre es obligatorio'); return; }
+  const person = {
+    id: 'p'+Date.now(), name,
+    phone: document.getElementById('np-phone').value.trim(),
+    idNum: document.getElementById('np-id').value.trim(),
+    address: document.getElementById('np-address').value.trim(),
+    notes: document.getElementById('np-notes').value.trim(),
+    file: personFileData||null,
+    created: today()
+  };
+  await saveItem('people', person);
+  personFileData = null;
+  closeModal('modal-new-person');
+};
+
+// ── FILES ──
+window.viewFileData = function(type, id) {
+  let fileData = null;
+  if (type==='loan') { const l=loans.find(x=>x.id===id); fileData=l?.contractFile; }
+  else { const p=people.find(x=>x.id===id); fileData=p?.file; }
+  if (!fileData) return;
+  const win = window.open();
+  if (fileData.type?.startsWith('image')) win.document.write(`<img src="${fileData.data}" style="max-width:100%">`);
+  else win.location.href = fileData.data;
+};
+
+// ── SETTINGS ──
+function renderSettingsPage() {
+  $('page-settings').innerHTML = `
+    <div class="rate-hero-sub">Tasa de interés global</div>
+    <div class="rate-hero" id="rate-hero">${settings.rate}%</div>
+    <input type="range" min="1" max="100" value="${settings.rate}" id="rate-slider" class="form-input" style="padding:8px 0;background:none;border:none;margin-bottom:20px" oninput="updateRateUI(this.value)">
+
+    <div class="card">
+      <div class="cfg-row">
+        <div><div class="cfg-label">Período por defecto</div></div>
+        <select class="form-input" style="width:auto;padding:8px 12px;font-size:13px" onchange="updateSetting('period',this.value)">
+          <option value="weekly" ${settings.period==='weekly'?'selected':''}>Semanal</option>
+          <option value="biweekly" ${settings.period==='biweekly'?'selected':''}>Quincenal</option>
+          <option value="monthly" ${settings.period==='monthly'?'selected':''}>Mensual</option>
+        </select>
+      </div>
+      <div class="cfg-row">
+        <div><div class="cfg-label">Marcar vencidos automático</div><div class="cfg-sub">Cuando pasa la fecha de pago</div></div>
+        <label class="switch"><input type="checkbox" ${settings.autoLate?'checked':''} onchange="updateSetting('autoLate',this.checked)"><span class="slider"></span></label>
+      </div>
+      <div class="cfg-row" style="border:none">
+        <div><div class="cfg-label">Total clientes / préstamos</div></div>
+        <span style="color:var(--text2)">${people.length} / ${loans.length}</span>
+      </div>
+    </div>
+    <button class="btn btn-outline" onclick="exportJSON()" style="margin-bottom:10px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exportar respaldo JSON
+    </button>
+    <button class="btn btn-outline" onclick="resetConfig()">Cambiar configuración Firebase</button>
+  `;
+}
+
+window.updateRateUI = function(v) {
+  document.getElementById('rate-hero').textContent = v + '%';
+  settings.rate = parseInt(v);
+  saveSettings();
+};
+
+window.updateSetting = function(key, val) {
+  settings[key] = val;
+  saveSettings();
+};
+
+window.exportJSON = function() {
+  const data = JSON.stringify({ people, loans, settings }, null, 2);
+  const blob = new Blob([data],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='miprestamo_backup_'+today()+'.json'; a.click();
+};
+
+window.resetConfig = function() {
+  if (confirm('¿Cambiar configuración de Firebase? Se cerrará la sesión.')) {
+    localStorage.removeItem(CFG_KEY);
+    location.reload();
+  }
+};
+
+// ── BOOT ──
+const savedCfg = localStorage.getItem(CFG_KEY);
+if (savedCfg) {
+  initFirebase(JSON.parse(savedCfg));
+} else {
+  $('setup-screen').style.display = 'flex';
+}
+</script>
+</body>
+</html>
