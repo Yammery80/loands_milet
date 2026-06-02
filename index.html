@@ -295,6 +295,18 @@ input:checked+.slider:before{transform:translateX(19px);background:#120e00}
 .abono-input-row{display:flex;gap:8px;margin-top:10px;align-items:center}
 .abono-input-row input{flex:1;background:var(--s3);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--sans);font-size:15px;outline:none}
 .abono-input-row input:focus{border-color:var(--gold)}
+
+/* ── LOAN TYPE SELECTOR ── */
+.type-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+.type-card{border:1.5px solid var(--border);border-radius:var(--r-sm);padding:14px 12px;cursor:pointer;transition:all 0.15s;background:var(--s2);text-align:center}
+.type-card.selected{border-color:var(--gold);background:rgba(201,168,76,0.08)}
+.type-card-icon{font-size:24px;margin-bottom:6px}
+.type-card-title{font-size:13px;font-weight:600;color:var(--text)}
+.type-card-desc{font-size:11px;color:var(--text3);margin-top:3px;line-height:1.4}
+/* ── OPEN LOAN abonos ── */
+.open-abono-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.open-abono-row:last-child{border:none}
+.open-abono-tag{font-size:10px;background:rgba(201,168,76,0.12);color:var(--gold);padding:2px 7px;border-radius:10px;font-weight:600}
 </style>
 </head>
 <body>
@@ -394,6 +406,7 @@ service cloud.firestore {
 <div class="modal-overlay" id="modal-person"><div class="modal" id="modal-person-body"></div></div>
 <div class="modal-overlay" id="modal-new-loan"><div class="modal" id="modal-new-loan-body"></div></div>
 <div class="modal-overlay" id="modal-new-person"><div class="modal" id="modal-new-person-body"></div></div>
+<div class="modal-overlay" id="modal-abono"><div class="modal" id="modal-abono-body"></div></div>
 <div class="modal-overlay" id="modal-edit-person"><div class="modal" id="modal-edit-person-body"></div></div>
 
 <script type="module">
@@ -675,8 +688,222 @@ function getSaldo(pay) {
   return Math.max(0, pay.amount - getTotalAbonado(pay));
 }
 
+
+// ── OPEN LOAN DETAIL ──
+function showOpenLoanDetail(id) {
+  const l = loans.find(x=>x.id===id); if(!l) return;
+  const p = people.find(x=>x.id===l.personId);
+  const name = p?p.name:'—';
+  const abonos = l.abonos||[];
+  const totalAbonado = abonos.reduce((a,b)=>a+b.monto,0);
+  const saldo = l.saldoActual !== undefined ? l.saldoActual : l.amount;
+  const interesesTotal = (l.interesesCargados||[]).reduce((a,b)=>a+b.monto,0);
+
+  // History: mix abonos and intereses, sorted by date
+  const eventos = [
+    ...abonos.map(a=>({...a, tipo:'abono'})),
+    ...(l.interesesCargados||[]).map(i=>({...i, tipo:'interes'}))
+  ].sort((a,b)=>a.fecha>b.fecha?1:-1);
+
+  const historialHtml = eventos.length
+    ? eventos.map(e => e.tipo==='abono'
+        ? `<div class="open-abono-row">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--green)">+ Abono</div>
+              <div style="font-size:11px;color:var(--text3)">${fmtDate(e.fecha)}${e.nota?' · '+e.nota:''}</div>
+              ${e.saldoDespues!==undefined?`<div style="font-size:11px;color:var(--text3)">Saldo quedó: ${fmt(e.saldoDespues)}</div>`:''}
+            </div>
+            <span style="font-size:15px;font-weight:700;color:var(--green)">${fmt(e.monto)}</span>
+          </div>`
+        : `<div class="open-abono-row">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--red)">− Interés ${l.rate}%</div>
+              <div style="font-size:11px;color:var(--text3)">${fmtDate(e.fecha)}</div>
+              <div style="font-size:11px;color:var(--text3)">Sobre saldo: ${fmt(e.saldoAntes)}</div>
+            </div>
+            <span style="font-size:15px;font-weight:700;color:var(--red)">+${fmt(e.monto)}</span>
+          </div>`
+      ).join('')
+    : '<div style="padding:20px 0;text-align:center;color:var(--text3);font-size:13px">Sin movimientos aún</div>';
+
+  const contractBtn = l.contractFile
+    ? `<button class="btn btn-outline btn-sm" style="width:auto" onclick="viewFileData('loan','${id}')">📄 Ver contrato</button>` : '';
+
+  $('modal-loan-body').innerHTML = `
+    <div class="modal-handle" onclick="closeModal('modal-loan')"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="modal-title" style="margin-bottom:0">${name}</div>
+      <span style="font-size:11px;background:rgba(201,168,76,0.12);color:var(--gold);padding:3px 10px;border-radius:20px;font-weight:600">Préstamo abierto</span>
+    </div>
+
+    <div class="stats-grid" style="gap:8px;margin-bottom:14px">
+      <div class="stat-card c-gold" style="padding:13px"><div class="stat-label">Capital</div><div class="stat-val" style="font-size:18px">${fmt(l.amount)}</div></div>
+      <div class="stat-card c-red" style="padding:13px"><div class="stat-label">Saldo actual</div><div class="stat-val" style="font-size:18px">${fmt(saldo)}</div></div>
+      <div class="stat-card c-green" style="padding:13px"><div class="stat-label">Abonado</div><div class="stat-val" style="font-size:18px">${fmt(totalAbonado)}</div></div>
+      <div class="stat-card" style="padding:13px"><div class="stat-label">Interés cobrado</div><div class="stat-val" style="font-size:18px;color:var(--green)">${fmt(interesesTotal)}</div></div>
+    </div>
+
+    <div style="background:var(--s2);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:14px;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:var(--text3)">Interés este mes (${l.rate}%)</span>
+        <span style="font-size:15px;font-weight:700;color:var(--gold)">${fmt(saldo*(l.rate/100))}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Sobre saldo actual de ${fmt(saldo)}</div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      ${contractBtn}
+      <button class="btn btn-green btn-sm" onclick="openAbonoAbierto('${id}')">+ Registrar abono</button>
+      <button class="btn btn-outline btn-sm" onclick="cargarInteres('${id}')">📅 Cargar interés del mes</button>
+      <button class="btn btn-blue btn-sm" onclick="exportLoanPDF('${id}')">📄 PDF</button>
+    </div>
+
+    ${l.status!=='done'?`
+    <button class="btn btn-outline btn-sm" style="width:auto;margin-bottom:14px;border-color:var(--green);color:var(--green)" onclick="liquidarAbierto('${id}')">
+      ✓ Marcar como liquidado
+    </button>`:''}
+
+    <div class="st">Historial de movimientos</div>
+    <div style="background:var(--s2);border-radius:var(--r-sm);padding:4px 14px 0;border:1px solid var(--border)">
+      ${historialHtml}
+    </div>
+
+    ${l.status!=='done'?`<button class="btn btn-danger" style="margin-top:16px" onclick="deleteLoanConfirm('${id}')">Eliminar préstamo</button>`:''}
+    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-loan')">Cerrar</button>
+  `;
+  openModal('modal-loan');
+}
+
+// ── ABONO PARA PRÉSTAMO ABIERTO ──
+let _openLoanId = null;
+window.openAbonoAbierto = function(id) {
+  _openLoanId = id;
+  const l = loans.find(x=>x.id===id); if(!l) return;
+  const saldo = l.saldoActual !== undefined ? l.saldoActual : l.amount;
+  const interesMes = saldo * (l.rate/100);
+
+  $('modal-abono-body').innerHTML = `
+    <div class="modal-handle" onclick="closeModal('modal-abono')"></div>
+    <div class="modal-title">Registrar abono</div>
+
+    <div style="background:var(--s2);border-radius:var(--r-sm);padding:14px;margin-bottom:18px;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:13px;color:var(--text3)">Saldo pendiente</span>
+        <span style="font-size:18px;font-weight:700;color:var(--red)">${fmt(saldo)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <span style="font-size:12px;color:var(--text3)">Interés del mes (${l.rate}%)</span>
+        <span style="font-size:13px;color:var(--gold);font-weight:600">${fmt(interesMes)}</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">¿Cuánto te pagaron?</label>
+      <input class="form-input" type="number" id="oa-monto" placeholder="0.00"
+        style="font-size:28px;font-weight:700;text-align:center"
+        oninput="previewAbonoAbierto(${saldo})">
+      <div id="oa-preview" style="text-align:center;margin-top:8px;font-size:13px;color:var(--text3);min-height:20px"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Fecha</label>
+      <input class="form-input" type="date" id="oa-fecha" value="${today()}">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Nota (opcional)</label>
+      <input class="form-input" type="text" id="oa-nota" placeholder="Ej: pago parcial, adelanto…">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <button class="btn btn-outline" style="padding:10px;font-size:12px" onclick="fillAbonoAbierto(${interesMes})">
+        Solo interés<br><small style="font-size:11px;opacity:0.7">${fmt(interesMes)}</small>
+      </button>
+      <button class="btn btn-outline" style="padding:10px;font-size:12px" onclick="fillAbonoAbierto(${saldo})">
+        Liquidar todo<br><small style="font-size:11px;opacity:0.7">${fmt(saldo)}</small>
+      </button>
+    </div>
+
+    <button class="btn btn-gold" onclick="saveAbonoAbierto()">✓ Guardar abono</button>
+    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-abono')">Cancelar</button>
+  `;
+  openModal('modal-abono');
+};
+
+window.fillAbonoAbierto = function(v) {
+  const el = document.getElementById('oa-monto');
+  if(el){ el.value=v.toFixed(2); }
+  const l = loans.find(x=>x.id===_openLoanId);
+  const saldo = l ? (l.saldoActual||l.amount) : 0;
+  previewAbonoAbierto(saldo);
+};
+
+window.previewAbonoAbierto = function(saldo) {
+  const monto = parseFloat(document.getElementById('oa-monto')?.value)||0;
+  const prev = document.getElementById('oa-preview');
+  if(!prev) return;
+  if(!monto){prev.innerHTML='';return;}
+  const nuevo = Math.max(0, saldo-monto);
+  if(monto >= saldo){
+    prev.innerHTML='<span style="color:var(--green);font-weight:600">✓ Préstamo liquidado</span>';
+  } else {
+    prev.innerHTML=`Nuevo saldo: <strong style="color:var(--red)">${fmt(nuevo)}</strong>`;
+  }
+};
+
+window.saveAbonoAbierto = async function() {
+  const l = loans.find(x=>x.id===_openLoanId); if(!l) return;
+  const monto = parseFloat(document.getElementById('oa-monto')?.value);
+  const fecha = document.getElementById('oa-fecha')?.value || today();
+  const nota  = document.getElementById('oa-nota')?.value?.trim()||'';
+  if(!monto||monto<=0){alert('Ingresa el monto recibido');return;}
+
+  const saldoAntes = l.saldoActual !== undefined ? l.saldoActual : l.amount;
+  const saldoDespues = Math.max(0, saldoAntes - monto);
+
+  if (!l.abonos) l.abonos = [];
+  l.abonos.push({ fecha, monto, nota, saldoAntes, saldoDespues });
+  l.saldoActual = saldoDespues;
+
+  if (saldoDespues <= 0.01) {
+    l.status = 'done';
+  }
+
+  checkLateStatus();
+  await saveItem('loans', l);
+  closeModal('modal-abono');
+  showOpenLoanDetail(_openLoanId);
+};
+
+// ── CARGAR INTERÉS MENSUAL (préstamo abierto) ──
+window.cargarInteres = async function(id) {
+  const l = loans.find(x=>x.id===id); if(!l) return;
+  const saldo = l.saldoActual !== undefined ? l.saldoActual : l.amount;
+  if(saldo<=0){alert('El préstamo ya está liquidado');return;}
+  const interes = saldo*(l.rate/100);
+  const fecha = today();
+  if(!confirm(`¿Cargar interés de ${l.rate}% sobre ${fmt(saldo)} = ${fmt(interes)}?\nFecha: ${fmtDate(fecha)}`)) return;
+  if(!l.interesesCargados) l.interesesCargados=[];
+  l.interesesCargados.push({fecha, monto:interes, saldoAntes:saldo});
+  // Interest increases the balance
+  l.saldoActual = saldo + interes;
+  await saveItem('loans',l);
+  showOpenLoanDetail(id);
+};
+
+window.liquidarAbierto = async function(id) {
+  const l = loans.find(x=>x.id===id); if(!l) return;
+  if(!confirm('¿Marcar este préstamo como liquidado?')) return;
+  l.status = 'done';
+  l.saldoActual = 0;
+  await saveItem('loans',l);
+  closeModal('modal-loan');
+};
+
 function showLoanDetail(id) {
   const l=loans.find(x=>x.id===id); if(!l) return;
+  // Route to open-loan detail if tipo==='abierto'
+  if (l.tipo==='abierto') { showOpenLoanDetail(id); return; }
   const p=people.find(x=>x.id===l.personId);
   const name=p?p.name:'—';
   const now=today();
@@ -764,48 +991,96 @@ function showLoanDetail(id) {
 window.showLoanDetail=showLoanDetail;
 
 // ── Modal abono ──
+let _abonoLoanId = null, _abonoIdx = null;
+
 window.openAbono = function(loanId, idx) {
   const l = loans.find(x=>x.id===loanId); if(!l) return;
   const pay = l.payments[idx];
   const saldo = getSaldo(pay);
+  _abonoLoanId = loanId;
+  _abonoIdx = idx;
 
-  // Inject abono UI below that payment row — use a temporary inline modal
-  const existing = document.getElementById('abono-inline-'+idx);
-  if (existing) { existing.remove(); return; }
+  $('modal-abono-body').innerHTML = `
+    <div class="modal-handle" onclick="closeModal('modal-abono')"></div>
+    <div class="modal-title">Registrar abono</div>
 
-  const div = document.createElement('div');
-  div.id = 'abono-inline-'+idx;
-  div.style.cssText = 'background:var(--s1);border:1px solid var(--gold);border-radius:10px;padding:14px;margin-top:8px';
-  div.innerHTML = `
-    <div style="font-size:13px;color:var(--text2);margin-bottom:10px">
-      Pago ${pay.num} · Saldo pendiente: <strong style="color:var(--red)">${fmt(saldo)}</strong>
+    <div style="background:var(--s2);border-radius:var(--r-sm);padding:14px;margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:13px;color:var(--text3)">Pago #${pay.num}</span>
+        <span style="font-size:13px;color:var(--text3)">Vence: ${fmtDate(pay.dueDate)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:var(--text3)">Monto del pago</span>
+        <span style="font-size:16px;font-weight:600">${fmt(pay.amount)}</span>
+      </div>
+      ${(pay.abonos||[]).length > 0 ? `
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Abonos anteriores</div>
+        ${(pay.abonos||[]).map(a=>`
+          <div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0">
+            <span style="color:var(--text3)">${fmtDate(a.fecha)}</span>
+            <span style="color:var(--green);font-weight:600">+${fmt(a.monto)}</span>
+          </div>`).join('')}
+        <div style="display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          <span style="font-size:13px;color:var(--text3)">Saldo pendiente</span>
+          <span style="font-size:16px;font-weight:700;color:var(--red)">${fmt(saldo)}</span>
+        </div>
+      </div>` : `
+      <div style="display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+        <span style="font-size:13px;color:var(--text3)">Saldo pendiente</span>
+        <span style="font-size:16px;font-weight:700;color:var(--red)">${fmt(saldo)}</span>
+      </div>`}
     </div>
-    <div class="abono-input-row">
-      <input type="number" id="abono-monto-${idx}" placeholder="Monto recibido" min="1" max="${saldo}" step="0.01" style="font-size:16px">
-      <input type="date" id="abono-fecha-${idx}" value="${today()}" style="font-size:13px;flex:0.8">
+
+    <div class="form-group">
+      <label class="form-label">¿Cuánto te pagaron hoy?</label>
+      <input class="form-input" type="number" id="ab-monto" placeholder="0.00" 
+        style="font-size:24px;font-weight:600;text-align:center;letter-spacing:1px"
+        oninput="previewAbono(${saldo})">
+      <div id="ab-preview" style="text-align:center;margin-top:8px;font-size:13px;color:var(--text3);min-height:20px"></div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button class="btn btn-green" style="flex:1;padding:10px" onclick="saveAbono('${loanId}',${idx})">Registrar abono</button>
-      <button class="btn btn-outline" style="flex:0.4;padding:10px" onclick="document.getElementById('abono-inline-${idx}').remove()">✕</button>
+
+    <div class="form-group">
+      <label class="form-label">Fecha del pago</label>
+      <input class="form-input" type="date" id="ab-fecha" value="${today()}">
     </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+      <button class="btn btn-outline" style="padding:12px" 
+        onclick="fillAbono(${saldo})">Pago completo<br><small style="font-size:11px;opacity:0.7">${fmt(saldo)}</small></button>
+      <button class="btn btn-green" style="padding:12px" onclick="saveAbono()">
+        ✓ Guardar abono
+      </button>
+    </div>
+    <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-abono')">Cancelar</button>
   `;
+  openModal('modal-abono');
+};
 
-  // Insert after the pay-row
-  const table = document.getElementById('pay-table-'+loanId);
-  if (table) {
-    const rows = table.querySelectorAll('.pay-row');
-    if (rows[idx]) rows[idx].after(div);
-    else table.appendChild(div);
+window.fillAbono = function(saldo) {
+  const input = document.getElementById('ab-monto');
+  if(input){ input.value = saldo.toFixed(2); previewAbono(saldo); }
+};
+
+window.previewAbono = function(saldo) {
+  const monto = parseFloat(document.getElementById('ab-monto')?.value)||0;
+  const prev = document.getElementById('ab-preview');
+  if(!prev) return;
+  if(!monto){ prev.textContent=''; return; }
+  const restante = saldo - monto;
+  if(monto >= saldo){
+    prev.innerHTML = '<span style="color:var(--green);font-weight:600">✓ Pago completado</span>';
+  } else {
+    prev.innerHTML = `Quedará pendiente: <strong style="color:var(--red)">${fmt(restante)}</strong>`;
   }
 };
 
-window.saveAbono = async function(loanId, idx) {
+window.saveAbono = async function() {
+  const loanId = _abonoLoanId, idx = _abonoIdx;
   const l = loans.find(x=>x.id===loanId); if(!l) return;
-  const montoInput = document.getElementById('abono-monto-'+idx);
-  const fechaInput = document.getElementById('abono-fecha-'+idx);
-  const monto = parseFloat(montoInput?.value);
-  const fecha = fechaInput?.value || today();
-  if (!monto || monto <= 0) { alert('Ingresa un monto válido'); return; }
+  const monto = parseFloat(document.getElementById('ab-monto')?.value);
+  const fecha = document.getElementById('ab-fecha')?.value || today();
+  if (!monto || monto <= 0) { alert('Ingresa el monto recibido'); return; }
 
   const pay = l.payments[idx];
   if (!pay.abonos) pay.abonos = [];
@@ -819,7 +1094,8 @@ window.saveAbono = async function(loanId, idx) {
 
   checkLateStatus();
   await saveItem('loans', l);
-  showLoanDetail(loanId); // refresh modal
+  closeModal('modal-abono');
+  showLoanDetail(loanId);
 };
 
 window.markPaid=async function(loanId,idx){
@@ -924,11 +1200,43 @@ window.exportLoanPDF=function(id){
 };
 
 // ── NEW LOAN ──
-window.openNewLoan=function(prePersonId){
-  loanFileData=null;
-  $('modal-new-loan-body').innerHTML=`
+// ── INTEREST CALCULATION ──
+function calcLoan(amount, rate, nPayments, period) {
+  const months = paymentsToMonths(nPayments, period);
+  const interest = amount * (rate/100) * months;
+  const total = amount + interest;
+  const perPayment = total / nPayments;
+  return { interest, total, perPayment, months };
+}
+
+// Current loan type selected in form
+let _loanType = 'cuotas'; // 'cuotas' | 'abierto'
+
+window.openNewLoan = function(prePersonId) {
+  loanFileData = null;
+  _loanType = 'cuotas';
+  renderNewLoanForm(prePersonId || '');
+  openModal('modal-new-loan');
+};
+
+function renderNewLoanForm(prePersonId) {
+  $('modal-new-loan-body').innerHTML = `
     <div class="modal-handle" onclick="closeModal('modal-new-loan')"></div>
     <div class="modal-title">Nuevo préstamo</div>
+
+    <div class="type-selector">
+      <div class="type-card ${_loanType==='cuotas'?'selected':''}" onclick="setLoanType('cuotas','${prePersonId}')">
+        <div class="type-card-icon">📅</div>
+        <div class="type-card-title">Por cuotas</div>
+        <div class="type-card-desc">Número fijo de pagos semanales, quincenales o mensuales</div>
+      </div>
+      <div class="type-card ${_loanType==='abierto'?'selected':''}" onclick="setLoanType('abierto','${prePersonId}')">
+        <div class="type-card-icon">♾️</div>
+        <div class="type-card-title">Préstamo abierto</div>
+        <div class="type-card-desc">Sin cuotas fijas. El cliente abona lo que pueda. Interés mensual sobre saldo</div>
+      </div>
+    </div>
+
     <div class="form-group">
       <label class="form-label">Cliente *</label>
       <select class="form-input" id="nl-person">
@@ -936,6 +1244,7 @@ window.openNewLoan=function(prePersonId){
         ${people.map(p=>`<option value="${p.id}" ${prePersonId===p.id?'selected':''}>${p.name}</option>`).join('')}
       </select>
     </div>
+
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Monto prestado *</label>
@@ -943,23 +1252,37 @@ window.openNewLoan=function(prePersonId){
       </div>
       <div class="form-group">
         <label class="form-label">Tasa % mensual</label>
-        <input class="form-input" id="nl-rate" type="number" placeholder="${settings.rate}" value="${settings.rate}" oninput="calcPreview()">
+        <input class="form-input" id="nl-rate" type="number" value="${settings.rate}" oninput="calcPreview()">
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">No. de pagos</label>
-        <input class="form-input" id="nl-payments" type="number" value="4" min="1" oninput="calcPreview()">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Cobrar cada</label>
-        <select class="form-input" id="nl-period" onchange="calcPreview()">
-          <option value="weekly" ${settings.period==='weekly'?'selected':''}>Semana</option>
-          <option value="biweekly" ${settings.period==='biweekly'?'selected':''}>Quincena</option>
-          <option value="monthly" ${settings.period==='monthly'?'selected':''}>Mes</option>
-        </select>
+
+    <div id="nl-cuotas-fields" style="display:${_loanType==='cuotas'?'block':'none'}">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">No. de pagos</label>
+          <input class="form-input" id="nl-payments" type="number" value="4" min="1" oninput="calcPreview()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cobrar cada</label>
+          <select class="form-input" id="nl-period" onchange="calcPreview()">
+            <option value="weekly" ${settings.period==='weekly'?'selected':''}>Semana</option>
+            <option value="biweekly" ${settings.period==='biweekly'?'selected':''}>Quincena</option>
+            <option value="monthly" ${settings.period==='monthly'?'selected':''}>Mes</option>
+          </select>
+        </div>
       </div>
     </div>
+
+    <div id="nl-abierto-info" style="display:${_loanType==='abierto'?'block':'none'}">
+      <div class="calc-box" style="margin-bottom:14px">
+        <div style="font-size:13px;color:var(--text2);line-height:1.6">
+          💡 Cada mes se cobra el <strong style="color:var(--gold)">${settings.rate}% sobre el saldo actual</strong>.<br>
+          El cliente abona lo que pueda en cualquier momento.<br>
+          Tú registras cada abono y el sistema calcula el nuevo saldo.
+        </div>
+      </div>
+    </div>
+
     <div class="form-group">
       <label class="form-label">Fecha de inicio</label>
       <input class="form-input" id="nl-date" type="date" value="${today()}">
@@ -976,63 +1299,105 @@ window.openNewLoan=function(prePersonId){
     <button class="btn btn-gold" style="margin-top:14px" onclick="saveLoan()">Crear préstamo →</button>
     <button class="btn btn-outline" style="margin-top:8px" onclick="closeModal('modal-new-loan')">Cancelar</button>
   `;
-  openModal('modal-new-loan');
   calcPreview();
-};
-
-// ── INTEREST CALCULATION (corrected) ──
-// Interest is monthly. Multiply by number of equivalent months.
-function calcLoan(amount, rate, nPayments, period) {
-  const months = paymentsToMonths(nPayments, period);
-  const interest = amount * (rate/100) * months;
-  const total = amount + interest;
-  const perPayment = total / nPayments;
-  return { interest, total, perPayment, months };
 }
 
-window.calcPreview=function(){
-  const amount=parseFloat(document.getElementById('nl-amount')?.value)||0;
-  const rate=parseFloat(document.getElementById('nl-rate')?.value)||0;
-  const n=parseInt(document.getElementById('nl-payments')?.value)||1;
-  const period=document.getElementById('nl-period')?.value||'monthly';
-  const prev=document.getElementById('nl-preview');
-  if(!prev) return;
-  if(!amount){prev.innerHTML='';return;}
-  const {interest,total,perPayment,months}=calcLoan(amount,rate,n,period);
-  const periodName=period==='weekly'?'semana':period==='biweekly'?'quincena':'mes';
-  prev.innerHTML=`<div class="calc-box">
+window.setLoanType = function(type, prePersonId) {
+  _loanType = type;
+  renderNewLoanForm(prePersonId);
+};
+
+window.calcPreview = function() {
+  if (_loanType === 'abierto') {
+    const amount = parseFloat(document.getElementById('nl-amount')?.value)||0;
+    const rate   = parseFloat(document.getElementById('nl-rate')?.value)||0;
+    const prev   = document.getElementById('nl-preview');
+    if (!prev) return;
+    if (!amount) { prev.innerHTML=''; return; }
+    const interesMes1 = amount * (rate/100);
+    prev.innerHTML = `<div class="calc-box">
+      <div class="calc-row"><span style="color:var(--text3)">Capital prestado</span><span>${fmt(amount)}</span></div>
+      <div class="calc-row"><span style="color:var(--text3)">Interés mes 1 (${rate}%)</span><span style="color:var(--gold)">${fmt(interesMes1)}</span></div>
+      <div class="calc-row"><span style="color:var(--text3)">Mínimo a recibir mes 1</span><span style="color:var(--green)">${fmt(interesMes1)}</span></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text3)">
+        El interés se recalcula cada mes sobre el saldo que quede
+      </div>
+    </div>`;
+    return;
+  }
+  // cuotas
+  const amount = parseFloat(document.getElementById('nl-amount')?.value)||0;
+  const rate   = parseFloat(document.getElementById('nl-rate')?.value)||0;
+  const n      = parseInt(document.getElementById('nl-payments')?.value)||1;
+  const period = document.getElementById('nl-period')?.value||'monthly';
+  const prev   = document.getElementById('nl-preview');
+  if (!prev) return;
+  if (!amount) { prev.innerHTML=''; return; }
+  const {interest,total,perPayment,months} = calcLoan(amount,rate,n,period);
+  const periodName = period==='weekly'?'semana':period==='biweekly'?'quincena':'mes';
+  prev.innerHTML = `<div class="calc-box">
     <div class="calc-row"><span style="color:var(--text3)">Capital</span><span>${fmt(amount)}</span></div>
-    <div class="calc-row"><span style="color:var(--text3)">Meses equivalentes</span><span>${months} mes${months!==1?'es':''}</span></div>
-    <div class="calc-row"><span style="color:var(--text3)">Interés (${rate}%×${months} meses)</span><span style="color:var(--green)">${fmt(interest)}</span></div>
+    <div class="calc-row"><span style="color:var(--text3)">Meses (${n} pagos ${periodName})</span><span>${months} mes${months!==1?'es':''}</span></div>
+    <div class="calc-row"><span style="color:var(--text3)">Interés (${rate}%×${months})</span><span style="color:var(--green)">${fmt(interest)}</span></div>
     <div class="calc-row calc-total"><span>Total a cobrar</span><span>${fmt(total)}</span></div>
     <div class="calc-row"><span style="color:var(--text3)">Pago por ${periodName}</span><span style="color:var(--gold);font-weight:700">${fmt(perPayment)}</span></div>
   </div>`;
 };
 
-window.handleLoanFile=function(input){
-  const file=input.files[0]; if(!file) return;
+window.handleLoanFile = function(input) {
+  const file = input.files[0]; if(!file) return;
   if(file.size>900000){alert('Archivo muy grande. Máx ~900KB');return;}
-  const reader=new FileReader();
-  reader.onload=e=>{ loanFileData={name:file.name,type:file.type,data:e.target.result}; document.getElementById('nl-file-ok').textContent='✓ '+file.name; };
+  const reader = new FileReader();
+  reader.onload = e => {
+    loanFileData = {name:file.name,type:file.type,data:e.target.result};
+    document.getElementById('nl-file-ok').textContent = '✓ '+file.name;
+  };
   reader.readAsDataURL(file);
 };
 
-window.saveLoan=async function(){
-  const personId=document.getElementById('nl-person').value;
-  const amount=parseFloat(document.getElementById('nl-amount').value);
-  const rate=parseFloat(document.getElementById('nl-rate').value)||settings.rate;
-  const n=parseInt(document.getElementById('nl-payments').value)||4;
-  const period=document.getElementById('nl-period').value;
-  const date=document.getElementById('nl-date').value||today();
-  if(!personId||!amount){alert('Completa cliente y monto');return;}
-  const {interest,total,perPayment}=calcLoan(amount,rate,n,period);
-  const days=periodDays(period);
-  const payments=Array.from({length:n},(_,i)=>({
-    num:i+1, amount:perPayment, dueDate:addDays(date,days*(i+1)), paid:false, paidDate:null
-  }));
-  const loan={id:'l'+Date.now(),personId,amount,rate,period,date,totalAmount:total,payments,status:'active',contractFile:loanFileData||null};
-  await saveItem('loans',loan);
-  loanFileData=null;
+window.saveLoan = async function() {
+  const personId = document.getElementById('nl-person').value;
+  const amount   = parseFloat(document.getElementById('nl-amount').value);
+  const rate     = parseFloat(document.getElementById('nl-rate').value)||settings.rate;
+  const date     = document.getElementById('nl-date').value || today();
+  if (!personId||!amount) { alert('Completa cliente y monto'); return; }
+
+  let loan;
+  if (_loanType === 'abierto') {
+    // Open loan — no fixed payments, track balance and abonos
+    loan = {
+      id: 'l'+Date.now(),
+      tipo: 'abierto',
+      personId, amount, rate, date,
+      saldoActual: amount,
+      abonos: [],          // { fecha, monto, nota, saldoAntes, saldoDespues }
+      interesesCargados: [],  // { fecha, monto, saldoAntes }
+      status: 'active',
+      contractFile: loanFileData||null,
+      // For compatibility with existing display
+      totalAmount: amount,
+      payments: [],
+      period: 'monthly'
+    };
+  } else {
+    const n      = parseInt(document.getElementById('nl-payments').value)||4;
+    const period = document.getElementById('nl-period').value;
+    const {interest,total,perPayment} = calcLoan(amount,rate,n,period);
+    const days = periodDays(period);
+    const payments = Array.from({length:n},(_,i)=>({
+      num:i+1, amount:perPayment,
+      dueDate: addDays(date, days*(i+1)),
+      paid:false, paidDate:null, abonos:[]
+    }));
+    loan = {
+      id:'l'+Date.now(), tipo:'cuotas',
+      personId, amount, rate, period, date,
+      totalAmount:total, payments, status:'active',
+      contractFile:loanFileData||null
+    };
+  }
+  await saveItem('loans', loan);
+  loanFileData = null;
   closeModal('modal-new-loan');
 };
 
