@@ -1,0 +1,66 @@
+[debug] [2026-06-02T19:58:40.018Z] ----------------------------------------------------------------------
+[debug] [2026-06-02T19:58:40.029Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\yamme\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init hosting
+[debug] [2026-06-02T19:58:40.030Z] CLI Version:   15.19.0
+[debug] [2026-06-02T19:58:40.030Z] Platform:      win32
+[debug] [2026-06-02T19:58:40.031Z] Node Version:  v24.14.1
+[debug] [2026-06-02T19:58:40.031Z] Time:          Tue Jun 02 2026 13:58:40 GMT-0600 (hora estándar central)
+[debug] [2026-06-02T19:58:40.032Z] ----------------------------------------------------------------------
+[debug] 
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\loands_milet
+
+Before we get started, keep in mind:
+
+  * You are currently outside your home directory
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] 
+[debug] [2026-06-02T19:58:51.423Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-02T19:58:51.424Z] > authorizing via signed-in user (yammery.28@gmail.com)
+[debug] [2026-06-02T19:58:51.427Z] Checked if tokens are valid: false, expires at: 1780354375898
+[debug] [2026-06-02T19:58:51.427Z] Checked if tokens are valid: false, expires at: 1780354375898
+[debug] [2026-06-02T19:58:51.428Z] > refreshing access token with scopes: []
+[debug] [2026-06-02T19:58:51.431Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-06-02T19:58:51.431Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-06-02T19:58:51.672Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-06-02T19:58:51.672Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-06-02T19:58:51.690Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=100
+[debug] [2026-06-02T19:58:52.096Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-06-02T19:58:52.096Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] 
+=== Hosting Setup
+[debug] [2026-06-02T19:58:54.206Z] Checked if tokens are valid: true, expires at: 1780433930673
+[debug] [2026-06-02T19:58:54.206Z] Checked if tokens are valid: true, expires at: 1780433930673
+[debug] [2026-06-02T19:58:54.207Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/loandsmilet [none]
+[debug] [2026-06-02T19:58:54.381Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/loandsmilet 200
+[debug] [2026-06-02T19:58:54.382Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/loandsmilet {"projectId":"loandsmilet","projectNumber":"608096849408","displayName":"loandsmilet","name":"projects/loandsmilet","resources":{"hostingSite":"loandsmilet"},"state":"ACTIVE","etag":"1_f2375d4f-dca4-459e-aeeb-b0780493e692"}
+[info] 
+[info] Your public directory is the folder (relative to your project directory) that
+[info] will contain Hosting assets to be uploaded with firebase deploy. If you
+[info] have a build process for your assets, use your build's output directory.
+[info] 
+[debug] [2026-06-02T19:59:01.284Z] ExitPromptError: User force closed the prompt with SIGINT
+    at Interface.sigint (C:\Users\yamme\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\@inquirer\core\dist\commonjs\lib\create-prompt.js:101:37)
+    at Interface.emit (node:events:508:28)
+    at [_ttyWrite] [as _ttyWrite] (node:internal/readline/interface:1327:18)
+    at ReadStream.onkeypress (node:internal/readline/interface:284:20)
+    at ReadStream.emit (node:events:520:35)
+    at emitKeys (node:internal/readline/utils:371:14)
+    at emitKeys.next (<anonymous>)
+    at ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)
+    at ReadStream.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:563:12)
+[error] 
+[error] Error: An unexpected error has occurred.
